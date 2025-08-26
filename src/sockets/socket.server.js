@@ -3,6 +3,7 @@ const cookie = require("cookie");
 const jwt = require("jsonwebtoken");
 const userModel = require("../models/user.model");
 const aiService = require("../services/ai.service");
+const vectorService = require("../services/vector.service");
 const messageModel = require("../models/message.model");
 
 module.exports.initSocketServer = (httpServer) => {
@@ -28,11 +29,45 @@ module.exports.initSocketServer = (httpServer) => {
 
   io.on("connection", (socket) => {
     socket.on("ai-message", async (messagePayload) => {
-      await messageModel.create({
+      const userMessage = await messageModel.create({
         content: messagePayload.content,
         chat: messagePayload.chat,
         user: socket.user._id,
         role: "user",
+      });
+
+      const userMessageVector = await aiService.generateVector(
+        messagePayload.content
+      );
+
+      const memory = await vectorService.queryMemory({
+        queryVector: userMessageVector,
+        limit: 5,
+        metadata: {},
+      });
+
+      const longTermMemory = [
+        {
+          role: "user",
+          parts: [
+            {
+              text: `
+          These are some previous messages from the chat, use them to generate a response.
+          ${memory.map((item) => item.metadata.text).join("\n")}
+          `,
+            },
+          ],
+        },
+      ];
+
+      await vectorService.createMemory({
+        vectors: userMessageVector,
+        metadata: {
+          userId: socket.user._id,
+          chatId: messagePayload.chat,
+          text: messagePayload.content,
+        },
+        messageId: userMessage._id,
       });
 
       const chatHistory = (
@@ -45,20 +80,39 @@ module.exports.initSocketServer = (httpServer) => {
           .lean()
       ).reverse();
 
-      const response = await aiService.generateResponse(
-        chatHistory.map((chatItem) => {
-          return {
-            role: chatItem.role,
-            parts: [{ text: chatItem.content }],
-          };
-        })
-      );
+      const sortTermMemory = chatHistory.map((chatItem) => {
+        return {
+          role: chatItem.role,
+          parts: [{ text: chatItem.content }],
+        };
+      });
 
-      await messageModel.create({
+      // console.log(memory);
+      // console.log(longTermMemory[0]);
+      // console.log(sortTermMemory);
+
+      const response = await aiService.generateResponse([
+        ...longTermMemory,
+        ...sortTermMemory,
+      ]);
+
+      const modelMessage = await messageModel.create({
         content: response,
         chat: messagePayload.chat,
         user: socket.user._id,
         role: "model",
+      });
+
+      const modelMessageVector = await aiService.generateVector(response);
+
+      await vectorService.createMemory({
+        vectors: modelMessageVector,
+        metadata: {
+          userId: socket.user._id,
+          chatId: messagePayload.chat,
+          text: response,
+        },
+        messageId: modelMessage._id,
       });
 
       socket.emit("ai-response", response);
