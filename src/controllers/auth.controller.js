@@ -1,4 +1,5 @@
 const userModel = require("../models/user.model");
+const blacklistTokenModel = require("../models/blacklistToken.model");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
@@ -66,5 +67,29 @@ module.exports.loginUser = async (req, res) => {
     });
   } catch (error) {
     return res.status(500).json("User in not loggedIn !");
+  }
+};
+
+module.exports.logoutUserUser = async (req, res) => {
+  try {
+    const token =
+      req.cookies?.token || req.headers.authorization?.split(" ")[1];
+    res.clearCookie("token");
+
+    await blacklistTokenModel.create(token);
+
+    res.status(200).json({ message: "User logout successfully" });
+  } catch (error) {
+    return res.status(500).json({ message: "User is not logout !" });
+  }
+};
+
+module.exports.loggedInUserUser = async (req, res) => {
+  try {
+    const user = await userModel.findById(req.user._id);
+
+    res.status(200).json(user);
+  } catch (error) {
+    return res.status(401).json({ message: "Unauthorized !" });
   }
 };
