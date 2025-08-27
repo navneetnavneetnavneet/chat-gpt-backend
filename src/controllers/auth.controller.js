@@ -68,3 +68,13 @@ module.exports.loginUser = async (req, res) => {
     return res.status(500).json("User in not loggedIn !");
   }
 };
+
+module.exports.loggedInUser = async (req, res) => {
+  try {
+    const user = await userModel.findById(req.user._id);
+
+    res.status(200).json(user);
+  } catch (error) {
+    return res.status(401).json({ message: "Unauthorized !" });
+  }
+};

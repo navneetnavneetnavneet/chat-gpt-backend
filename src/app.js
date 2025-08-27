@@ -2,10 +2,12 @@ const express = require("express");
 const app = express();
 const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
+const cors = require("cors");
 
 const authRoutes = require("./routes/auth.routes");
 const chatRoutes = require("./routes/chat.routes");
 
+app.use(cors({ origin: process.env.REACT_BASE_URL, credentials: true }));
 app.use(express.json());
 app.use(morgan("dev"));
 app.use(cookieParser());
