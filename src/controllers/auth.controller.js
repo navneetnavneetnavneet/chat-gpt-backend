@@ -70,7 +70,6 @@ module.exports.loginUser = async (req, res) => {
   }
 };
 
-<<<<<<< HEAD
 module.exports.logoutUserUser = async (req, res) => {
   try {
     const token =
@@ -86,9 +85,6 @@ module.exports.logoutUserUser = async (req, res) => {
 };
 
 module.exports.loggedInUserUser = async (req, res) => {
-=======
-module.exports.loggedInUser = async (req, res) => {
->>>>>>> b9e3f2d4960e0823eec639892d9f8a38ad625201
   try {
     const user = await userModel.findById(req.user._id);
 
