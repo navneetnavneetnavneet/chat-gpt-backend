@@ -7,7 +7,13 @@ const vectorService = require("../services/vector.service");
 const messageModel = require("../models/message.model");
 
 module.exports.initSocketServer = (httpServer) => {
-  const io = new Server(httpServer);
+  const io = new Server(httpServer, {
+    cors: {
+      origin: process.env.REACT_BASE_URL,
+      methods: ["GET", "POST"],
+      credentials: true,
+    },
+  });
 
   io.use(async (socket, next) => {
     const cookies = cookie.parse(socket.handshake.headers.cookie || "");
@@ -28,6 +34,8 @@ module.exports.initSocketServer = (httpServer) => {
   });
 
   io.on("connection", (socket) => {
+    console.log("A user connected", socket.id);
+
     socket.on("ai-message", async (messagePayload) => {
       const [userMessage, userMessageVector] = await Promise.all([
         messageModel.create({
@@ -97,7 +105,7 @@ module.exports.initSocketServer = (httpServer) => {
         ...sortTermMemory,
       ]);
 
-      socket.emit("ai-response", response);
+      socket.emit("ai-response", { response, chat: messagePayload.chat });
 
       const [modelMessage, modelMessageVector] = await Promise.all([
         messageModel.create({
