@@ -21,8 +21,6 @@ module.exports.loginWithGoogle = async (req, res) => {
 
     const { email, name, given_name, family_name } = ticket.getPayload();
 
-    console.log(ticket.getPayload());
-
     let user = await userModel.findOne({ email });
 
     if (!user) {
