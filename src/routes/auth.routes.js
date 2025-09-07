@@ -3,6 +3,8 @@ const router = express.Router();
 const authController = require("../controllers/auth.controller");
 const authUser = require("../middlewares/auth.middleware");
 
+router.post("/google", authController.loginWithGoogle);
+
 router.post("/register", authController.registerUser);
 
 router.post("/login", authController.loginUser);
